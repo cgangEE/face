@@ -1,0 +1,5 @@
+*.txt
+*.swp
+origin_pic/*
+result_pic/*
+.DS_Store
