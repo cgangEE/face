@@ -1,9 +1,5 @@
 #include "faceTool.h"
 
-#define DELTA 5
-#define SIZE 50
-#define SCALE 0.9
-
 int fileCnt;
 
 
