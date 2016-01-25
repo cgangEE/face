@@ -1,5 +1,8 @@
 *.txt
 *.swp
+*.o
 origin_pic/*
 result_pic/*
+negative_pic/*
+yale/*
 .DS_Store

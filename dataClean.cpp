@@ -1,20 +1,9 @@
-#include <iostream>
-#include <string>
-
-#include <cstdio>
-#include <cstdlib>
-#include <cstring>
-#include <cmath>
-
-#include <dirent.h>
-#include <unistd.h>
-
-#include "opencv/cv.h"
-#include "opencv/highgui.h"
-using namespace std;
-using namespace cv;
+#include "faceTool.h"
 
 #define picDirName  "origin_pic"
+#define DELTA 5
+#define SIZE 50
+#define SCALE 0.9
 
 string createPicName(int no){
 	string ret;
@@ -25,33 +14,35 @@ string createPicName(int no){
 	return "../result_pic/"+ret + ".jpg";
 }
 
-bool changeFileName(int &fileCnt){
-	DIR *dp;
-	struct dirent *dirp, *fp;
+void cutImage(Mat &img, int &fileCnt){
+	Mat roi;
+	cvtColor(img,img,CV_BGR2GRAY);
+	while (img.rows>=SIZE && img.cols>=SIZE){
+		for (int i=0; i<(img.cols- SIZE) / DELTA; ++i)
+			for (int j=0; j<(img.rows- SIZE) / DELTA; ++j){
+				if (rand()%100000<99900) continue;
+				Rect rect(i*DELTA, j*DELTA, SIZE, SIZE);
+				img(rect).copyTo(roi);
+				++fileCnt;
+				imwrite(createPicName(fileCnt).c_str(), roi);  
+			}
+		Size size(img.cols * SCALE, img.rows * SCALE);
+		resize(img, img, size);
+	}
+}
 
-	if ((dp = opendir(picDirName)) == NULL){
-		puts("picDirName error!");
-		return false;
-	} 
+bool processPicsInDir(const char *srcDir, const char *dstDir){
+	vector<string> picName;
+	if (!getFileNameFromDir(srcDir, picName)) return false;
+	for (int i=0; i<picName.size(); ++i){
 
-	int debug = 0;
-	chdir(picDirName);
-	while((dirp = readdir(dp)) != NULL)
-		if (dirp->d_type == 8 && dirp->d_name[0]!='.'){
-			fileCnt++;
-			Mat src = imread(dirp->d_name);
-			cout<<createPicName(fileCnt).c_str()<<endl;
-			imwrite(createPicName(fileCnt).c_str(), src);  
-		}
-	chdir("..");
-	closedir(dp);
+	}
 	return true;
 }
 
 int main(){
-	int fileCnt = 0;
-	if (!changeFileName(fileCnt))
-		return 1;
+	srand(time(NULL));
+	if (!processPicsInDir("origin_pic", "negative_pic")) return 1;
 
 	return 0;
 }
