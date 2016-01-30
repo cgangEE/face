@@ -28,4 +28,11 @@ using namespace cv;
 
 bool getFileNameFromDir(const char *dir, vector<string> &ret);
 
+class FeatureExtract{
+	int pixInt[SIZE+10][SIZE+10];
+public:
+	FeatureExtract();
+	int pixRectInt(int i, int j, int x, int y);
+	vector<int> getFeature(Mat &src);
+};
 #endif
