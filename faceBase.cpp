@@ -1,4 +1,4 @@
-#include "faceTool.h"
+#include "faceBase.h"
 
 bool getFileNameFromDir(const char *dir, vector<string> &ret){
 	DIR *dp;
