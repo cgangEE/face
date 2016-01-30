@@ -6,4 +6,4 @@
 
 ### featureExtract.o
 
-对 FeatureExtract class 的 getFeature 传入一幅 mat 图像，该函数返回一组 vector &lt;int&gt;特征。
+对 FeatureExtract class 的 getFeature 传入一幅 mat 图像，该函数返回一组 vector &lt;int&gt; 特征。
