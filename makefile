@@ -1,8 +1,8 @@
-main: featureExtract.o dataClean
+main: featureExtract dataClean
 	ls
 
-featureExtract.o: featureExtract.h featureExtract.cpp faceBase.h
-	g++ -c -I/usr/local/include featureExtract.cpp 
+featureExtract: featureExtract.cpp faceBase.o
+	g++ -I/usr/local/include -L/usr/local/lib -lopencv_core -lopencv_highgui -lopencv_imgproc featureExtract.cpp faceBase.o -o featureExtract
 
 dataClean: dataClean.cpp faceBase.o
 	g++ -I/usr/local/include -L/usr/local/lib -lopencv_core -lopencv_highgui -lopencv_imgproc dataClean.cpp faceBase.o -o dataClean

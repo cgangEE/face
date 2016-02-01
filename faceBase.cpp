@@ -17,6 +17,9 @@ bool getFileNameFromDir(const char *dir, vector<string> &ret){
 	return true;
 }
 
+FeatureExtract::FeatureExtract(){
+	memset(pixInt, 0, sizeof(pixInt));
+}
 
 int FeatureExtract::pixRectInt(int i, int j, int x, int y){
 	return pixInt[x][y] - pixInt[i-1][y] + pixInt[i-1][j-1] - pixInt[x][j-1];
@@ -36,8 +39,8 @@ vector<int> FeatureExtract::getFeature(Mat &src){
 
 	for (int i=1; i<=n; ++i)
 		for (int j=1; j<=m; ++j)
-			for (int x=2; x<=n-i+1; ++x)
-				for (int y=2; y<=m-j+1; ++y){
+			for (int x=2; x<=n/2-i+1; ++x)
+				for (int y=2; y<=m/2-j+1; ++y){
 					if (y%2==0){
 						feature.push_back( 
 								pixRectInt(i, j, x, y/2) 

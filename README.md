@@ -10,4 +10,7 @@ getFileNameFromDir 返回文件夹中的所有文件的路径。
 
 从yale中，把图像缩放和剪切为50X50的图片，共165张，作为正例存入到positive-pic中去。
 
+### featureExtract
+
+从positive-pic的正样本和negative-pic的负样本中提取特征保存到trainX.txt中，样本的类别保存到trainY.txt中。
 
