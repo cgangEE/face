@@ -22,9 +22,15 @@ using namespace cv;
 #define negDir "negative_pic"
 #define posDir "positive_pic"
 
+#define trainFileNameX "trainX.txt"
+#define trainFileNameY "trainY.txt"
+
+#define adaBoostFinal "addBoostFinal.txt"
+
 #define DELTA 5
 #define SIZE 50
 #define SCALE 0.9
+#define adaBoostT 20
 
 bool getFileNameFromDir(const char *dir, vector<string> &ret);
 

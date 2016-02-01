@@ -1,5 +1,8 @@
-main: bin/featureExtract bin/dataClean
-	ls
+main: bin/featureExtract bin/dataClean adaBoost
+	echo 'x'
+
+adaBoost: adaBoost.cpp 
+	g++ adaBoost.cpp -o adaBoost
 
 bin/featureExtract: featureExtract.cpp faceBase.o
 	g++ -I/usr/local/include -L/usr/local/lib -lopencv_core -lopencv_highgui -lopencv_imgproc featureExtract.cpp faceBase.o -o bin/featureExtract

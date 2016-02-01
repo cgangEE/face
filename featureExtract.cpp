@@ -26,17 +26,19 @@ int main(){
 	if (!featureExtractFromDir(posDir, x, y, 1)) return 1;
 	if (!featureExtractFromDir(negDir, x, y, -1)) return 1;
 
-	FILE *fTrainX = fopen("trainX.txt", "w");
-	FILE *fTrainY = fopen("trainY.txt", "w");
+	FILE *fTrainX = fopen(trainFileNameX, "w");
+	FILE *fTrainY = fopen(trainFileNameY, "w");
 	
 	if (!fTrainX){
-		printf("file<%s> open failed!\n", "trainX");
+		printf("file<%s> open failed!\n", trainFileNameX);
 		return 1;
 	}
 	if (!fTrainY){
-		printf("file<%s> open failed!\n", "trainY");
+		printf("file<%s> open failed!\n", trainFileNameY);
 		return 1;
 	}
+
+	fprintf(fTrainX, "%lu %lu\n", x.size(), x[0].size());
 
 	for (int i=0; i<x.size(); ++i){
 		for (int j=0; j<x[i].size(); ++j)
