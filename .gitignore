@@ -6,4 +6,5 @@ result_pic/*
 negative_pic/*
 positive_pic/*
 yale/*
+bin/*
 .DS_Store
