@@ -39,9 +39,9 @@ bool readTrainFromFile(vector<vector<int> > &x, vector<int> &y){
 }
 
 
-bool saveAdaBoostToFile(vector<double> &error, 
-		vector<double> &theta,
-		vector<int> &featureSelected, vector<int> &sign){
+bool saveAdaBoostToFile(
+		double *error, double *theta, 
+		int *featureSelected, int *sign){
 
 	FILE *fAdaBoostFinal = fopen(adaBoostFinal, "wb");
 	if (!fAdaBoostFinal){
@@ -50,12 +50,10 @@ bool saveAdaBoostToFile(vector<double> &error,
 	}
 
 
-	int n = error.size();
-
-	fwrite(&error[0], sizeof(error[0]), n, fAdaBoostFinal);
-	fwrite(&theta[0], sizeof(theta[0]), n, fAdaBoostFinal);
-	fwrite(&featureSelected[0], sizeof(featureSelected[0]), n, fAdaBoostFinal);
-	fwrite(&sign[0], sizeof(sign[0]), n, fAdaBoostFinal);
+	fwrite(error, sizeof(error[0]), adaBoostT, fAdaBoostFinal);
+	fwrite(theta, sizeof(theta[0]), adaBoostT, fAdaBoostFinal);
+	fwrite(featureSelected, sizeof(featureSelected[0]), adaBoostT, fAdaBoostFinal);
+	fwrite(sign, sizeof(sign[0]), adaBoostT, fAdaBoostFinal);
 
 	fclose(fAdaBoostFinal);
 	return true;
@@ -69,10 +67,10 @@ bool trainAdaBoost(vector<vector<int> > &x, vector<int> &y){
 
 	vector<double> w(n, 1.0/n);
 
-	vector<double> error;
-	vector<double> theta;
-	vector<int> sign;
-	vector<int> featureSelected;
+	double *error = (double*) malloc(sizeof(double) * adaBoostT);
+	double *theta = (double*) malloc(sizeof(double) * adaBoostT);
+	int *featureSelected = (int*) malloc(sizeof(int) * adaBoostT);
+	int *sign = (int*) malloc(sizeof(int) * adaBoostT);
 
 
 	for (int t=0; t<adaBoostT; ++t){
@@ -127,10 +125,21 @@ bool trainAdaBoost(vector<vector<int> > &x, vector<int> &y){
 			}
 		}
 
-		error.push_back(errorJ);
-		theta.push_back(thetaJ);
-		featureSelected.push_back(featureSelectedJ);
-		sign.push_back(signJ);
+
+		for (int i=0; i<w.size(); ++i)
+			if ( !( (signJ * x[i][featureSelectedJ] < signJ * thetaJ)
+					xor (y[i]==1)  )){
+				w[i] *= errorJ/(1-errorJ);
+			}
+				
+
+		cout<<errorJ<<' '<<featureSelectedJ<<endl;
+
+
+		error[t] = errorJ;
+		theta[t] = thetaJ;
+		featureSelected[t] = featureSelectedJ;
+		sign[t] = signJ;
 	}
 
 	/*
@@ -148,7 +157,13 @@ bool trainAdaBoost(vector<vector<int> > &x, vector<int> &y){
 	cout<<wrong<<endl;
 	*/
 
-	return saveAdaBoostToFile(error, theta, featureSelected, sign);
+	bool ret = saveAdaBoostToFile(error, theta, featureSelected, sign);
+	free(error);
+	free(theta);
+	free(featureSelected);
+	free(sign);
+
+	return ret;
 }
 
 int main(){

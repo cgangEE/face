@@ -25,12 +25,12 @@ using namespace cv;
 #define trainFileNameX "trainX.txt"
 #define trainFileNameY "trainY.txt"
 
-#define adaBoostFinal "addBoostFinal.txt"
+#define adaBoostFinal "adaBoostFinal.txt"
 
 #define DELTA 5
 #define SIZE 50
 #define SCALE 0.9
-#define adaBoostT 20
+#define adaBoostT 50
 
 bool getFileNameFromDir(const char *dir, vector<string> &ret);
 

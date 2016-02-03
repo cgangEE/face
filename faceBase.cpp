@@ -39,8 +39,8 @@ vector<int> FeatureExtract::getFeature(Mat &src){
 
 	for (int i=1; i<=n; ++i)
 		for (int j=1; j<=m; ++j)
-			for (int x=2; x<=n/2-i+1; ++x)
-				for (int y=2; y<=m/2-j+1; ++y){
+			for (int x=2; x<=n-i+1; x+=3)
+				for (int y=2; y<=m-j+1; y+=3){
 					if (y%2==0){
 						feature.push_back( 
 								pixRectInt(i, j, x, y/2) 
