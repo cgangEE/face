@@ -27,7 +27,7 @@ double adaBoostFinalH(vector<int> &feature,
 	for (int i=0; i<adaBoostT; ++i)
 			type += log((1-error[i])/error[i])
 				* ( 
-				(sign[i] * feature[featureSelected[i]] < sign[i] * theta[i]) ?
+				(sign[i] * feature[i] < sign[i] * theta[i]) ?
 				1 : -1);
 
 	return type;
@@ -43,13 +43,13 @@ void faceDetect(Mat &img,
 	Mat face;
 	double max = -100e100;
 
-
 	double scale = min(300.0 / img.cols, 300.0 /img.rows);
 	Size size(img.cols * scale, img.rows * scale);
 	resize(img, img, size);
 
 
-	FeatureExtract featureExtract;
+	FeatureExtract featureExtract(featureSelected);
+	int fileCnt = 0;
 
 	while (img.rows>=SIZE && img.cols>=SIZE){
 		for (int i=0; i<(img.cols- SIZE) / DELTA; ++i)
@@ -57,27 +57,23 @@ void faceDetect(Mat &img,
 				Rect rect(i*DELTA, j*DELTA, SIZE, SIZE);
 				img(rect).copyTo(roi);
 
-				vector<int> feature = featureExtract.getFeature(roi);
+				vector<int> feature = featureExtract.getAdaBoostFeature(roi);
 				
 				double type = adaBoostFinalH(feature, 
 						error, theta, featureSelected, sign);
 
-				if (type > 20){
+				if (type >= 0){
 					max = type;
 					face = roi;
 					cout<<type<<endl;
-					imshow("x", face);
-					waitKey(10);
+					imwrite( (string("result_pic") 
+							+ "/" + createPicName(++fileCnt)).c_str(), roi);
 				}
 
 			}
 		Size size(img.cols * SCALE, img.rows * SCALE);
 		resize(img, img, size);
 	}
-
-	puts("FT");
-	imshow("x", face);
-	waitKey(1000000);
 }
 
 int main(){

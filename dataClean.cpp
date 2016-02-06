@@ -2,24 +2,16 @@
 
 int fileCnt;
 
-
-string createPicName(int no){
-	string ret;
-	while (no){
-		ret = (char)('0'+no%10) + ret;
-		no /= 10;
-	}
-	return ret + ".jpg";
-}
-
-
 void processAndSave(Mat &img, const char *dstDir){
 	Mat roi;
 	cvtColor(img, img, CV_BGR2GRAY);
 	double scale = max((SIZE+1.0)/img.rows, (SIZE+1.0)/img.cols);
 	Size size(img.cols * scale, img.rows * scale);
 	resize(img, img, size);
-	Rect rect(0, 8, SIZE, SIZE);
+
+	//cout<<size.height<<' '<<size.width<<endl;
+
+	Rect rect(0, (int)(size.height/67.0*10), SIZE, SIZE);
 	img(rect).copyTo(roi);
 	imwrite( (string(dstDir) + '/' + createPicName(++fileCnt)).c_str(), roi);  
 }
@@ -32,7 +24,7 @@ void cutImage(Mat &img, const char* dstDir){
 	while (img.rows>=SIZE && img.cols>=SIZE){
 		for (int i=0; i<(img.cols- SIZE) / DELTA; ++i)
 			for (int j=0; j<(img.rows- SIZE) / DELTA; ++j){
-				if (!(rand()%100000<=50)) continue;
+				if (!(rand()%100000<=20)) continue;
 				Rect rect(i*DELTA, j*DELTA, SIZE, SIZE);
 				img(rect).copyTo(roi);
 				imwrite( (string(dstDir)
@@ -59,7 +51,7 @@ bool processPicsInDir(const char *srcDir,
 int main(){
 	srand(time(NULL));
 	if (!processPicsInDir("origin_pic", "negative_pic", *cutImage)) return 1;
-	if (!processPicsInDir("yale", "positive_pic", *processAndSave)) return 1;
+	if (!processPicsInDir("pain_crops", "positive_pic", *processAndSave)) return 1;
 
 	return 0;
 }

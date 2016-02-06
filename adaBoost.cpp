@@ -65,7 +65,14 @@ bool trainAdaBoost(vector<vector<int> > &x, vector<int> &y){
 	int n = x.size();
 	int m = x[0].size();
 
-	vector<double> w(n, 1.0/n);
+
+	int posCnt = 0;
+	for (int i=0; i<y.size(); ++i)
+		if (y[i]==1) posCnt++;
+	vector<double> w(posCnt, 1.0 / posCnt);
+	for (int i=0; i<y.size() - posCnt; ++i)
+		w.push_back(1.0 / (y.size() - posCnt));
+
 
 	double *error = (double*) malloc(sizeof(double) * adaBoostT);
 	double *theta = (double*) malloc(sizeof(double) * adaBoostT);
