@@ -8,5 +8,9 @@ negative_pic/*
 positive_pic/*
 yale/*
 pain_crops/*
+peal/*
+galleryset/*
+positive_test/*
+negative_test/*
 bin/*
 .DS_Store

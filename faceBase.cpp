@@ -30,44 +30,60 @@ string createPicName(int no){
 
 FeatureExtract::FeatureExtract(){
 	memset(pixInt, 0, sizeof(pixInt));
+	memset(pixIntSquar, 0, sizeof(pixIntSquar));
 }
 
 FeatureExtract::FeatureExtract(int *featureSelected){
-	FeatureExtract();
+	memset(pixInt, 0, sizeof(pixInt));
+	memset(pixIntSquar, 0, sizeof(pixIntSquar));
 
-	set<int> fSelected;
-	for (int i=0; i<adaBoostT; ++i)
-		fSelected.insert(featureSelected[i]);
+	multimap<int,int> fSelected;
+	for (int i=0; i<adaBoostT; ++i){
+		fSelected.insert(make_pair(featureSelected[i], i));
+		featureIndex.push_back(Feature());
+	}
 
 	int n = SIZE;
 	int m = SIZE;
 	int cnt = 0;
+	multimap<int,int>::iterator it;
+
+	int debugCnt = 0;
 
 	for (int i=1; i<=n; ++i)
 		for (int j=1; j<=m; ++j)
 			for (int x=2; x<=n-i+1; x++)
 				for (int y=2; y<=m-j+1; y++){
 					if (y%2==0){
-						if (fSelected.find(cnt++) != fSelected.end())
-							featureIndex.push_back(
-									Feature(i, j, x, y, 0));
+						while ( (it = fSelected.find(cnt)) != fSelected.end()){
+							featureIndex[it->second] = Feature(i, j, x, y, 0);
+							fSelected.erase(it);
+						}
+						++cnt;
 					}
 					if (x%2==0){
-						if (fSelected.find(cnt++) != fSelected.end())
-							featureIndex.push_back(
-									Feature(i, j, x, y, 1));
+						while ( (it = fSelected.find(cnt)) != fSelected.end()){
+							featureIndex[it->second] = Feature(i, j, x, y, 1);
+							fSelected.erase(it);
+						}
+						++cnt;
 					}
 					if (y%3==0){
-						if (fSelected.find(cnt++) != fSelected.end())
-							featureIndex.push_back(
-									Feature(i, j, x, y, 2));
+						while ( (it = fSelected.find(cnt)) != fSelected.end()){
+							featureIndex[it->second] = Feature(i, j, x, y, 2);
+							fSelected.erase(it);
+						}
+						++cnt;
 					}
 					if (x%2==0 && y%2==0){
-						if (fSelected.find(cnt++) != fSelected.end())
-							featureIndex.push_back(
-									Feature(i, j, x, y, 3));
+						while ( (it = fSelected.find(cnt)) != fSelected.end()){
+							featureIndex[it->second] = Feature(i, j, x, y, 3);
+							fSelected.erase(it);
+						}
+						++cnt;
 					}
 				}
+
 }
 
 void FeatureExtract::pixIntegral(Mat &src){
@@ -77,38 +93,50 @@ void FeatureExtract::pixIntegral(Mat &src){
 		for (int j=0; j<m; ++j){
 			pixInt[i+1][j+1] = pixInt[i][j+1] - pixInt[i][j] 
 				+ pixInt[i+1][j] + src.at<uchar>(i,j);
+			pixIntSquar[i+1][j+1] = pixIntSquar[i][j+1] - pixIntSquar[i][j] 
+				+ pixIntSquar[i+1][j] + SQR(src.at<uchar>(i,j));
 		}
 	}
 }
 
-int FeatureExtract::pixRectInt(int i, int j, int x, int y){
+floatType FeatureExtract::pixRectInt(int i, int j, int x, int y){
+	x += i - 1;
+	y += j - 1;
 	return pixInt[x][y] - pixInt[i-1][y] + pixInt[i-1][j-1] - pixInt[x][j-1];
 }
 
-int FeatureExtract::Feature::getFeature(FeatureExtract *fe){
+floatType FeatureExtract::Feature::getFeature(FeatureExtract *fe){
+
+	floatType mu = fe->pixInt[SIZE][SIZE] * 1.0 / SQR(SIZE);
+
+	floatType sigma = fe->pixIntSquar[SIZE][SIZE] * 1.0 / SQR(SIZE)
+		- SQR(mu);
+
+	sigma = (sigma <= 0.0) ? 1.0 : sqrt(sigma);
+	
 	switch (t){
 		case 0:
-			return fe->pixRectInt(i, j, x, y/2) 
-					- fe->pixRectInt(i, j+y/2, x, y/2);
+			return (fe->pixRectInt(i, j, x, y/2) 
+					- fe->pixRectInt(i, j+y/2, x, y/2)) / sigma;
 		case 1:
-			return fe->pixRectInt(i, j, x/2, y) 
-					- fe->pixRectInt(i+x/2, j, x/2, y);
+			return (fe->pixRectInt(i, j, x/2, y) 
+					- fe->pixRectInt(i+x/2, j, x/2, y)) / sigma;
 		case 2:
-			return fe->pixRectInt(i, j, x, y/3) 
+			return (fe->pixRectInt(i, j, x, y/3) 
 					- fe->pixRectInt(i, j+y/3, x, y/3)
-					+ fe->pixRectInt(i, j+y/3*2, x, y/3);
+					+ fe->pixRectInt(i, j+y/3*2, x, y/3) - mu * x * y / 3 ) / sigma;
 		case 3:
-			return fe->pixRectInt(i, j, x/2, y/2) 
+			return (fe->pixRectInt(i, j, x/2, y/2) 
 					- fe->pixRectInt(i, j+y/2, x/2, y/2) 
 					- fe->pixRectInt(i + x/2, j, x/2, y/2) 
-					+ fe->pixRectInt(i+x/2, j+y/2, x/2, y/2);
+					+ fe->pixRectInt(i+x/2, j+y/2, x/2, y/2)) / sigma;
 	}
 	printf("featureExtract.feature.getFeature error!\n");
-	return 0;
+	return 0.0;
 }
 
-vector<int> FeatureExtract::getAdaBoostFeature(Mat &src){
-	vector<int> feature;
+vector<floatType> FeatureExtract::getAdaBoostFeature(Mat &src){
+	vector<floatType> feature;
 	pixIntegral(src);
 
 	for (int i=0; i<adaBoostT; ++i)
@@ -118,8 +146,9 @@ vector<int> FeatureExtract::getAdaBoostFeature(Mat &src){
 }
 
 
-vector<int> FeatureExtract::getFeature(Mat &src){
-	vector<int> feature;
+vector<floatType> FeatureExtract::getFeature(Mat &src){
+
+	vector<floatType> feature;
 	pixIntegral(src);
 
 	int n = src.rows;

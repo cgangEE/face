@@ -1,7 +1,9 @@
 #include "faceBase.h"
 
+#define DEBUG 1
+
 bool readAdaBoostFromFile(
-		double *error, double *theta, 
+		floatType *error, floatType *theta, 
 		int *featureSelected, int *sign){
 
 	FILE *fAdaBoostFinal = fopen(adaBoostFinal, "rb");
@@ -19,74 +21,156 @@ bool readAdaBoostFromFile(
 	return true;
 }
 
-double adaBoostFinalH(vector<int> &feature,
-		double *error, double *theta, 
+floatType adaBoostFinalH(vector<floatType> &feature,
+		floatType *error, floatType *theta, 
 		int *featureSelected, int *sign){
 
-	double type = 0.0;
-	for (int i=0; i<adaBoostT; ++i)
-			type += log((1-error[i])/error[i])
-				* ( 
-				(sign[i] * feature[i] < sign[i] * theta[i]) ?
-				1 : -1);
+	floatType ret = 0.0;
+	for (int i=0; i<adaBoostT; ++i){
+		ret += log((1-error[i])/error[i])
+			* ( 
+					(sign[i] * feature[i] < sign[i] * theta[i]) ?
+					1 : -1);
+	}
 
-	return type;
+	return ret;
 }
 
+int fileCnt = 3000;
+
 void faceDetect(Mat &img, 
-		double *error, double *theta, 
+		floatType *error, floatType *theta, 
 		int *featureSelected, int *sign){
 
 	Mat roi;
 	cvtColor(img, img, CV_BGR2GRAY);
 
 	Mat face;
-	double max = -100e100;
 
-	double scale = min(300.0 / img.cols, 300.0 /img.rows);
+	floatType scale = min(1.0, 
+			min(400.0 / img.cols, 400.0 /img.rows));
+
 	Size size(img.cols * scale, img.rows * scale);
 	resize(img, img, size);
 
-
 	FeatureExtract featureExtract(featureSelected);
-	int fileCnt = 0;
+
+
+	floatType maxScore = INT_MIN;
 
 	while (img.rows>=SIZE && img.cols>=SIZE){
-		for (int i=0; i<(img.cols- SIZE) / DELTA; ++i)
-			for (int j=0; j<(img.rows- SIZE) / DELTA; ++j){
+		for (int i=0; i<=(img.cols - SIZE) / DELTA; ++i)
+			for (int j=0; j<=(img.rows - SIZE) / DELTA; ++j){
 				Rect rect(i*DELTA, j*DELTA, SIZE, SIZE);
 				img(rect).copyTo(roi);
 
-				vector<int> feature = featureExtract.getAdaBoostFeature(roi);
-				
-				double type = adaBoostFinalH(feature, 
+				vector<floatType> feature = featureExtract.getAdaBoostFeature(roi);
+
+				floatType score = adaBoostFinalH(feature, 
 						error, theta, featureSelected, sign);
 
-				if (type >= 0){
-					max = type;
-					face = roi;
-					cout<<type<<endl;
+				if (score > 20.0){
+					maxScore = score;
+					cout<<score<<' '<<++fileCnt<<endl;
+				//	face = roi;
 					imwrite( (string("result_pic") 
-							+ "/" + createPicName(++fileCnt)).c_str(), roi);
+							+ "/" + createPicName(fileCnt)).c_str(), roi);
 				}
 
 			}
 		Size size(img.cols * SCALE, img.rows * SCALE);
 		resize(img, img, size);
 	}
+	/*
+	size = Size(300, 300);
+	resize(face, face, size);
+	imshow("x", face);
+	*/
+}
+
+
+bool qualityTest(const char *testDir, int testSign, double testTheta,
+		floatType *error, floatType *theta,
+		int *featureSelected, int *sign){
+
+	vector<string> fileNameVec;
+	if (!getFileNameFromDir(testDir, fileNameVec)) return false;
+
+	FeatureExtract featureExtract(featureSelected);
+
+	int correctCnt = 0;
+
+	for (int i=0; i<fileNameVec.size(); ++i){
+		Mat src = imread(fileNameVec[i].c_str());
+		vector<floatType> feature = featureExtract.getAdaBoostFeature(src);
+		floatType score = adaBoostFinalH(feature, 
+				error, theta, featureSelected, sign);
+
+
+		if (score * testSign >= testTheta) 
+			correctCnt ++;
+	}
+
+	cout<<correctCnt<<' '<<fileNameVec.size()<<endl;
+
+
+	return true;
+}
+
+
+void cameraFace(
+		floatType *error, floatType *theta,
+		int *featureSelected, int *sign){
+
+	VideoCapture cap(0);
+	if(!cap.isOpened())
+		return;
+	Mat src;
+	int cnt = 0;
+	for(;;)
+	{
+		Mat frame;
+		cap>>frame;
+		if (++cnt < 100) continue;
+
+
+		imwrite(createPicName(cnt).c_str(), frame);
+		faceDetect(frame, error, theta, featureSelected, sign);
+//		imshow("x", frame);
+	}
+
 }
 
 int main(){
-	double *error = (double*) malloc(sizeof(double) * adaBoostT);
-	double *theta = (double*) malloc(sizeof(double) * adaBoostT);
+	floatType *error = (floatType*) malloc(sizeof(floatType) * adaBoostT);
+	floatType *theta = (floatType*) malloc(sizeof(floatType) * adaBoostT);
 	int *featureSelected = (int*) malloc(sizeof(int) * adaBoostT);
 	int *sign = (int*) malloc(sizeof(int) * adaBoostT);
 
 
 	if (!readAdaBoostFromFile(error, theta, featureSelected, sign)) return 1;
 
-	Mat img = imread("1.jpg");
-	faceDetect(img, error, theta, featureSelected, sign);
+	/*
+	Mat src = imread("1.jpg");
+	faceDetect(src, error, theta, featureSelected, sign);
+	*/
+
+	cameraFace(error, theta, featureSelected, sign);
+
+	/*
+	   for (double testTheta = -100.0; 
+	   testTheta <= -80.0; testTheta += 1.0){
+	   if (!qualityTest(posTestDir, 1, testTheta,
+	   error, theta, featureSelected, sign))
+	   return 1;
+
+	   if (!qualityTest(negTestDir, -1, testTheta,
+	   error, theta, featureSelected, sign))
+	   return 1;
+	   cout<<endl;
+	   }
+	 */
+
 
 	free(error);
 	free(theta);

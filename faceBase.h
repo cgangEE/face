@@ -22,15 +22,22 @@ using namespace cv;
 #define negDir "negative_pic"
 #define posDir "positive_pic"
 
+#define negTestDir "negative_test"
+#define posTestDir "positive_test"
+
 #define trainFileNameX "trainX.txt"
 #define trainFileNameY "trainY.txt"
 
 #define adaBoostFinal "adaBoostFinal.txt"
 
-#define DELTA 4
-#define SIZE 20
-#define SCALE 0.9
-#define adaBoostT 15
+#define DELTA 2
+#define SIZE 24
+#define SCALE 0.95
+#define adaBoostT 200
+
+#define SQR(x) ((x)*(x))
+
+typedef float floatType;
 
 bool getFileNameFromDir(const char *dir, vector<string> &ret);
 string createPicName(int no);
@@ -38,24 +45,25 @@ string createPicName(int no);
 class FeatureExtract{
 
 	class Feature{
-		int i, j, x, y, t;
 	public:
+		int i, j, x, y, t;
 		Feature(){}
 		Feature(int i, int j, int x, int y, int t):
 			i(i),j(j),x(x),y(y),t(t){}
-		int getFeature(FeatureExtract *fe);
+		floatType getFeature(FeatureExtract *fe);
 	};
 
 public:
 	vector<Feature> featureIndex;
-	int pixInt[SIZE+10][SIZE+10];
-	void pixIntegral(Mat &src);
-	int pixRectInt(int i, int j, int x, int y);
+	floatType pixInt[SIZE+10][SIZE+10];
+	int pixIntSquar[SIZE+10][SIZE+10];
 
+	void pixIntegral(Mat &src);
+	floatType pixRectInt(int i, int j, int x, int y);
 
 	FeatureExtract();
 	FeatureExtract(int *featureSelected);
-	vector<int> getFeature(Mat &src);
-	vector<int> getAdaBoostFeature(Mat &src);
+	vector<floatType> getFeature(Mat &src);
+	vector<floatType> getAdaBoostFeature(Mat &src);
 };
 #endif

@@ -1,7 +1,7 @@
 #include "faceBase.h"
 
 bool featureExtractFromDir(const char *dir, 
-		vector<vector<int> > &x, vector<int> &y, int type){
+		vector<vector<floatType> > &x, vector<int> &y, int type){
 
 	vector<string> fileName;
 	if (!getFileNameFromDir(dir, fileName)) return false;
@@ -9,48 +9,71 @@ bool featureExtractFromDir(const char *dir,
 	FeatureExtract featureExtract;
 
 	for (int i=0; i<fileName.size(); ++i){
-		Mat src = imread(fileName[i].c_str());
-		vector<int> feature = featureExtract.getFeature(src);
 
-		x.push_back(feature);
-		y.push_back(type);
+		Mat src = imread(fileName[i].c_str());
+		cvtColor(src, src, CV_BGR2GRAY);
+
+		for (int i=0; i<2; ++i){
+			if (i) 
+				flip(src, src, 1);
+			vector<floatType> feature = featureExtract.getFeature(src);
+
+			x.push_back(feature);
+			y.push_back(type);
+		}
 	}
 
 	return true;
 }
 
+bool writeFeatureToFile(vector<vector<floatType> > &x, vector<int> &y){
+	FILE *fTrainX = fopen(trainFileNameX, "wb");
+	FILE *fTrainY = fopen(trainFileNameY, "wb");
+
+	if (!fTrainX){
+		printf("file<%s> open failed!\n", trainFileNameX);
+		return false;
+	}
+	if (!fTrainY){
+		printf("file<%s> open failed!\n", trainFileNameY);
+		return false;
+	}
+
+	int n = x.size();
+	int m = x[0].size();
+
+	floatType *buf = (floatType *)malloc(m * sizeof(floatType));
+	int *bufInt = (int *)malloc(n * sizeof(int));
+	
+	fwrite(&n, sizeof(int), 1, fTrainX);
+	fwrite(&m, sizeof(int), 1, fTrainX);
+
+	for (int i=0; i<n; ++i){
+		for (int j=0; j<m; ++j)
+			buf[j] = x[i][j];
+		fwrite(buf, sizeof(floatType), m, fTrainX);
+	}
+
+	for (int i=0; i<n; ++i)
+		bufInt[i] = y[i];
+	fwrite(bufInt, sizeof(int), n, fTrainY);
+
+	free(buf);
+	free(bufInt);
+
+	fclose(fTrainX);
+	fclose(fTrainY);
+	return true;
+}
+
 int main(){
-	vector<vector<int> > x;
+	vector<vector<floatType> > x;
 	vector<int> y;
 
 	if (!featureExtractFromDir(posDir, x, y, 1)) return 1;
 	if (!featureExtractFromDir(negDir, x, y, -1)) return 1;
 
-	FILE *fTrainX = fopen(trainFileNameX, "w");
-	FILE *fTrainY = fopen(trainFileNameY, "w");
-	
-	if (!fTrainX){
-		printf("file<%s> open failed!\n", trainFileNameX);
-		return 1;
-	}
-	if (!fTrainY){
-		printf("file<%s> open failed!\n", trainFileNameY);
-		return 1;
-	}
+	if (!writeFeatureToFile(x, y)) return 1;
 
-	fprintf(fTrainX, "%lu %lu\n", x.size(), x[0].size());
-
-	for (int i=0; i<x.size(); ++i){
-		for (int j=0; j<x[i].size(); ++j)
-			fprintf(fTrainX, "%d ", x[i][j]);
-		fprintf(fTrainX, "\n");
-	}
-
-	for (int i=0; i<y.size(); ++i){
-		fprintf(fTrainY, "%d\n", y[i]);
-	}
-
-	fclose(fTrainX);
-	fclose(fTrainY);
 	return 0;
 }
