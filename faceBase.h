@@ -29,11 +29,12 @@ using namespace cv;
 #define trainFileNameY "trainY.txt"
 
 #define adaBoostFinal "adaBoostFinal.txt"
+#define cascadeFinal "cascadeFinal.txt"
 
 #define DELTA 2
-#define SIZE 24
+#define SIZE 20
 #define SCALE 0.95
-#define adaBoostT 200
+#define adaBoostT 1000
 
 #define SQR(x) ((x)*(x))
 
@@ -62,7 +63,7 @@ public:
 	floatType pixRectInt(int i, int j, int x, int y);
 
 	FeatureExtract();
-	FeatureExtract(int *featureSelected);
+	FeatureExtract(int *featureSelected, int fCnt);
 	vector<floatType> getFeature(Mat &src);
 	vector<floatType> getAdaBoostFeature(Mat &src);
 };

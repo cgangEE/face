@@ -4,20 +4,31 @@
 
 bool readAdaBoostFromFile(
 		floatType *error, floatType *theta, 
-		int *featureSelected, int *sign){
+		int *featureSelected, int *sign,
+		floatType *&threshold,
+		int &n, int *&featureC){
 
-	FILE *fAdaBoostFinal = fopen(adaBoostFinal, "rb");
-	if (!fAdaBoostFinal){
-		printf("open file<%s> error!\n", adaBoostFinal);
+	FILE *fCascade= fopen(cascadeFinal, "rb");
+	if (!fCascade){
+		printf("open file<%s> error!\n", cascadeFinal);
 		return false;
 	}
 
-	fread(error, sizeof(error[0]), adaBoostT, fAdaBoostFinal);
-	fread(theta, sizeof(theta[0]), adaBoostT, fAdaBoostFinal);
-	fread(featureSelected, sizeof(featureSelected[0]), adaBoostT, fAdaBoostFinal);
-	fread(sign, sizeof(sign[0]), adaBoostT, fAdaBoostFinal);
+	fread(error, sizeof(error[0]), adaBoostT, fCascade);
+	fread(theta, sizeof(theta[0]), adaBoostT, fCascade);
+	fread(featureSelected, sizeof(featureSelected[0]), adaBoostT, fCascade);
+	fread(sign, sizeof(sign[0]), adaBoostT, fCascade);
 
-	fclose(fAdaBoostFinal);
+
+	fread(&n, sizeof(n), 1, fCascade);
+
+	featureC = (int*) malloc(sizeof(int) * n);
+	threshold = (floatType*) malloc(sizeof(floatType) * n);
+
+	fread(featureC, sizeof(featureC[0]), n, fCascade);
+	fread(threshold, sizeof(threshold[0]), n, fCascade);
+
+	fclose(fCascade);
 	return true;
 }
 
@@ -146,35 +157,24 @@ int main(){
 	floatType *theta = (floatType*) malloc(sizeof(floatType) * adaBoostT);
 	int *featureSelected = (int*) malloc(sizeof(int) * adaBoostT);
 	int *sign = (int*) malloc(sizeof(int) * adaBoostT);
+	int n;
+	floatType *threshold;
+	int *featureC;
 
 
-	if (!readAdaBoostFromFile(error, theta, featureSelected, sign)) return 1;
+	if (!readAdaBoostFromFile(error, theta, featureSelected, sign
+				threshold, n, featureC)) return 1;
 
-	/*
-	Mat src = imread("1.jpg");
-	faceDetect(src, error, theta, featureSelected, sign);
-	*/
 
 	cameraFace(error, theta, featureSelected, sign);
-
-	/*
-	   for (double testTheta = -100.0; 
-	   testTheta <= -80.0; testTheta += 1.0){
-	   if (!qualityTest(posTestDir, 1, testTheta,
-	   error, theta, featureSelected, sign))
-	   return 1;
-
-	   if (!qualityTest(negTestDir, -1, testTheta,
-	   error, theta, featureSelected, sign))
-	   return 1;
-	   cout<<endl;
-	   }
-	 */
 
 
 	free(error);
 	free(theta);
 	free(featureSelected);
 	free(sign);
+	free(threshold);
+	free(featureC);
+
 	return 0;
 }

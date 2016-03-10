@@ -18,6 +18,14 @@ getFileNameFromDir 返回文件夹中的所有文件的路径。
 
 从 trainX.txt 和 trainY.txt 中读取特征和类别，利用AdaBoost算法训练，并把分类器的参数存入到 adaBoostFinal.txt 文件中。
 
+### testGen
+
+从 positive-pic 和 negative-pic 中抽取10%的测试数据到 positive-test 和 negative-test 中。
+
+### cascade
+
+利用 positive-test 和 negative-test 中的测试数据，来训练层级人脸检测器。
+
 ### faceDetect
 
 

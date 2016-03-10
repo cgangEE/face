@@ -5,7 +5,7 @@ bool extractToTest(const char *src, const char *dst){
 	if (!getFileNameFromDir(src, fileNameVec)) return false;
 
 	for (int i=0; i<fileNameVec.size(); ++i)
-		if (rand()%5==0){
+		if (rand()%10==0){
 			string cmd = "mv ";
 			cmd = cmd + fileNameVec[i];
 

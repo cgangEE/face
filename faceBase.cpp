@@ -33,12 +33,12 @@ FeatureExtract::FeatureExtract(){
 	memset(pixIntSquar, 0, sizeof(pixIntSquar));
 }
 
-FeatureExtract::FeatureExtract(int *featureSelected){
+FeatureExtract::FeatureExtract(int *featureSelected, int fCnt){
 	memset(pixInt, 0, sizeof(pixInt));
 	memset(pixIntSquar, 0, sizeof(pixIntSquar));
 
 	multimap<int,int> fSelected;
-	for (int i=0; i<adaBoostT; ++i){
+	for (int i=0; i<fCnt; ++i){
 		fSelected.insert(make_pair(featureSelected[i], i));
 		featureIndex.push_back(Feature());
 	}
@@ -113,7 +113,7 @@ floatType FeatureExtract::Feature::getFeature(FeatureExtract *fe){
 		- SQR(mu);
 
 	sigma = (sigma <= 0.0) ? 1.0 : sqrt(sigma);
-	
+
 	switch (t){
 		case 0:
 			return (fe->pixRectInt(i, j, x, y/2) 
@@ -139,7 +139,7 @@ vector<floatType> FeatureExtract::getAdaBoostFeature(Mat &src){
 	vector<floatType> feature;
 	pixIntegral(src);
 
-	for (int i=0; i<adaBoostT; ++i)
+	for (int i=0; i<featureIndex.size(); ++i)
 		feature.push_back(featureIndex[i].getFeature(this));
 
 	return feature;

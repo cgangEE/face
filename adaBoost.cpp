@@ -71,6 +71,7 @@ bool trainAdaBoost(vector<vector<floatType> > &x, vector<int> &y){
 	int n = x.size();
 	int m = x[0].size();
 
+	cout<<n<<' '<<m<<endl;
 
 	int posCnt = 0;
 	for (int i=0; i<y.size(); ++i)
@@ -87,6 +88,17 @@ bool trainAdaBoost(vector<vector<floatType> > &x, vector<int> &y){
 	int *featureSelected = (int*) malloc(sizeof(int) * adaBoostT);
 	int *sign = (int*) malloc(sizeof(int) * adaBoostT);
 
+
+	vector< pair<floatType, int> > * feature
+		= (vector< pair<floatType, int> >*) 
+		malloc(sizeof(vector< pair<floatType, int> >) * m);
+
+	for (int j=0; j<m; ++j){
+		for (int i=0; i<n; ++i)
+			feature[j].push_back(make_pair(x[i][j], i));
+		sort(feature[j].begin(), feature[j].end());
+	}
+	
 
 	for (int t=0; t<adaBoostT; ++t){
 		floatType wSum = 0.0;
@@ -110,31 +122,26 @@ bool trainAdaBoost(vector<vector<floatType> > &x, vector<int> &y){
 		int featureSelectedJ;
 
 		for (int j=0; j<m; ++j){
-			vector<pair<floatType, pair<int, floatType> > > featureJ;
-			for (int i=0; i<n; ++i)
-				featureJ.push_back(
-						make_pair(x[i][j], 
-							make_pair(y[i], w[i]))
-							);
-			sort(featureJ.begin(), featureJ.end());
+
 
 			floatType neg = 0.0;
 			floatType pos = 0.0;
 			for (int i=0; i<n; ++i){
-				if (featureJ[i].second.first == 1)
-					pos += featureJ[i].second.second;
+				if (y[feature[j][i].second] == 1)
+					pos += w[feature[j][i].second];
 				else 
-					neg += featureJ[i].second.second;
+					neg += w[feature[j][i].second];
+				
 
-				if (i!=n-1 && featureJ[i].first == featureJ[i+1].first)
+				if (i!=n-1 && feature[j][i].first == feature[j][i+1].first)
 					continue;
 
 				if (min(pos+Neg-neg, neg+Pos-pos) < errorJ){
 					errorJ = min(pos+Neg-neg, neg+Pos-pos);
 					featureSelectedJ = j;
 					signJ = (pos+Neg-neg < neg+Pos-pos) ? -1 : 1;
-					thetaJ = (i==n-1) ? featureJ[i].first + 1
-						: (featureJ[i].first + featureJ[i+1].first) / 2;
+					thetaJ = (i==n-1) ? feature[j][i].first + 1
+						: (feature[j][i].first + feature[j][i+1].first) / 2;
 				}
 
 			}

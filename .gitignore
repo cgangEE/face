@@ -2,6 +2,7 @@
 *.txt
 *.swp
 *.o
+tmp/*
 origin_pic/*
 result_pic/*
 negative_pic/*
