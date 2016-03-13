@@ -64,7 +64,9 @@ public:
 
 	FeatureExtract();
 	FeatureExtract(int *featureSelected, int fCnt);
+	void init(int *featureSelected, int fCnt);
 	vector<floatType> getFeature(Mat &src);
 	vector<floatType> getAdaBoostFeature(Mat &src);
+	vector<floatType> getQuickAdaBoostFeature(FeatureExtract *fe);
 };
 #endif

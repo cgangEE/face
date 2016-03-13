@@ -33,6 +33,58 @@ FeatureExtract::FeatureExtract(){
 	memset(pixIntSquar, 0, sizeof(pixIntSquar));
 }
 
+void FeatureExtract::init (int *featureSelected, int fCnt){
+	memset(pixInt, 0, sizeof(pixInt));
+	memset(pixIntSquar, 0, sizeof(pixIntSquar));
+
+	multimap<int,int> fSelected;
+	for (int i=0; i<fCnt; ++i){
+		fSelected.insert(make_pair(featureSelected[i], i));
+		featureIndex.push_back(Feature());
+	}
+
+	int n = SIZE;
+	int m = SIZE;
+	int cnt = 0;
+	multimap<int,int>::iterator it;
+
+	int debugCnt = 0;
+
+	for (int i=1; i<=n; ++i)
+		for (int j=1; j<=m; ++j)
+			for (int x=2; x<=n-i+1; x++)
+				for (int y=2; y<=m-j+1; y++){
+					if (y%2==0){
+						while ( (it = fSelected.find(cnt)) != fSelected.end()){
+							featureIndex[it->second] = Feature(i, j, x, y, 0);
+							fSelected.erase(it);
+						}
+						++cnt;
+					}
+					if (x%2==0){
+						while ( (it = fSelected.find(cnt)) != fSelected.end()){
+							featureIndex[it->second] = Feature(i, j, x, y, 1);
+							fSelected.erase(it);
+						}
+						++cnt;
+					}
+					if (y%3==0){
+						while ( (it = fSelected.find(cnt)) != fSelected.end()){
+							featureIndex[it->second] = Feature(i, j, x, y, 2);
+							fSelected.erase(it);
+						}
+						++cnt;
+					}
+					if (x%2==0 && y%2==0){
+						while ( (it = fSelected.find(cnt)) != fSelected.end()){
+							featureIndex[it->second] = Feature(i, j, x, y, 3);
+							fSelected.erase(it);
+						}
+						++cnt;
+					}
+				}
+}
+
 FeatureExtract::FeatureExtract(int *featureSelected, int fCnt){
 	memset(pixInt, 0, sizeof(pixInt));
 	memset(pixIntSquar, 0, sizeof(pixIntSquar));
@@ -133,6 +185,15 @@ floatType FeatureExtract::Feature::getFeature(FeatureExtract *fe){
 	}
 	printf("featureExtract.feature.getFeature error!\n");
 	return 0.0;
+}
+
+vector<floatType> FeatureExtract::getQuickAdaBoostFeature(FeatureExtract *fe){
+	vector<floatType> feature;
+
+	for (int i=0; i<featureIndex.size(); ++i)
+		feature.push_back(featureIndex[i].getFeature(fe));
+
+	return feature;
 }
 
 vector<floatType> FeatureExtract::getAdaBoostFeature(Mat &src){

@@ -1,62 +1,126 @@
 #include "faceBase.h"
 
-#define DEBUG 1
+#define DEBUG 0
+#define FILEID 0
 
 bool readAdaBoostFromFile(
 		floatType *error, floatType *theta, 
-		int *featureSelected, int *sign){
+		int *featureSelected, int *sign,
+		floatType *&threshold,
+		int &n, int *&featureC){
 
-	FILE *fAdaBoostFinal = fopen(adaBoostFinal, "rb");
-	if (!fAdaBoostFinal){
-		printf("open file<%s> error!\n", adaBoostFinal);
+	FILE *fCascade= fopen(cascadeFinal, "rb");
+	if (!fCascade){
+		printf("open file<%s> error!\n", cascadeFinal);
 		return false;
 	}
 
-	fread(error, sizeof(error[0]), adaBoostT, fAdaBoostFinal);
-	fread(theta, sizeof(theta[0]), adaBoostT, fAdaBoostFinal);
-	fread(featureSelected, sizeof(featureSelected[0]), adaBoostT, fAdaBoostFinal);
-	fread(sign, sizeof(sign[0]), adaBoostT, fAdaBoostFinal);
+	fread(error, sizeof(error[0]), adaBoostT, fCascade);
+	fread(theta, sizeof(theta[0]), adaBoostT, fCascade);
+	fread(featureSelected, sizeof(featureSelected[0]), adaBoostT, fCascade);
+	fread(sign, sizeof(sign[0]), adaBoostT, fCascade);
 
-	fclose(fAdaBoostFinal);
+
+	fread(&n, sizeof(n), 1, fCascade);
+
+	featureC = (int*) malloc(sizeof(int) * n);
+	threshold = (floatType*) malloc(sizeof(floatType) * n);
+
+	fread(featureC, sizeof(featureC[0]), n, fCascade);
+	fread(threshold, sizeof(threshold[0]), n, fCascade);
+
+	fclose(fCascade);
 	return true;
 }
 
-floatType adaBoostFinalH(vector<floatType> &feature,
-		floatType *error, floatType *theta, 
-		int *featureSelected, int *sign){
 
-	floatType ret = 0.0;
-	for (int i=0; i<adaBoostT; ++i){
-		ret += log((1-error[i])/error[i])
-			* ( 
-					(sign[i] * feature[i] < sign[i] * theta[i]) ?
-					1 : -1);
+int fileCnt = 0;
+
+floatType adaBoostFinalH(
+		FeatureExtract *&featureExtract, Mat &roi,
+		floatType *&error, floatType *&theta,
+		int *&featureSelected, int *&sign,
+		floatType *&threshold,
+		int n, int *&featureC){
+
+	int idx = 0;
+	floatType score = 0.0;
+
+	FeatureExtract fe;
+	fe.pixIntegral(roi);
+
+	for (int i=0; i<n; ++i){
+		vector<floatType> f = featureExtract[i].getQuickAdaBoostFeature(&fe);
+
+		for (int j=0; j<featureC[i]; ++j){
+			floatType &e = error[j+idx];
+			floatType &t = theta[j+idx];
+			int &s = sign[j+idx];
+
+			score += log((1-e)/e)
+				* ( (s * f[j] < s * t) ?
+						1 : -1);
+		}
+
+		if (score <= threshold[i]) return -10;
+
+		idx += featureC[i];
 	}
 
-	return ret;
+	return score;
+}
+int timeval_subtract(struct timeval* result, struct timeval* x, struct timeval* y) 
+{ 
+	int nsec; 
+
+	if ( x->tv_sec>y->tv_sec ) 
+		return -1; 
+
+	if ( (x->tv_sec==y->tv_sec) && (x->tv_usec>y->tv_usec) ) 
+		return -1; 
+
+	result->tv_sec = ( y->tv_sec-x->tv_sec ); 
+	result->tv_usec = ( y->tv_usec-x->tv_usec ); 
+
+	if (result->tv_usec<0) 
+	{ 
+		result->tv_sec--; 
+		result->tv_usec+=1000000; 
+	} 
+
+	return 0; 
 }
 
-int fileCnt = 3000;
 
-void faceDetect(Mat &img, 
-		floatType *error, floatType *theta, 
-		int *featureSelected, int *sign){
+#include <sys/time.h> 
+
+void test(
+		FeatureExtract *&featureExtract, Mat img,
+		floatType *&error, floatType *&theta,
+		int * &featureSelected, int *&sign,
+		floatType * &threshold,
+		int n, int * &featureC,
+		int &x, int &y, int &sz){
+
+
+	int cols = img.cols;
+
+	struct timeval start,stop,diff; 
+	gettimeofday(&start,0); 
 
 	Mat roi;
-	cvtColor(img, img, CV_BGR2GRAY);
-
-	Mat face;
 
 	floatType scale = min(1.0, 
-			min(400.0 / img.cols, 400.0 /img.rows));
+			min(300.0 / img.cols, 300.0 /img.rows));
 
 	Size size(img.cols * scale, img.rows * scale);
 	resize(img, img, size);
 
-	FeatureExtract featureExtract(featureSelected, adaBoostT);
+	cvtColor(img, img, CV_BGR2GRAY);
 
+	Mat ret;
+	floatType maxScore = -1e50;
 
-	floatType maxScore = INT_MIN;
 
 	while (img.rows>=SIZE && img.cols>=SIZE){
 		for (int i=0; i<=(img.cols - SIZE) / DELTA; ++i)
@@ -64,81 +128,89 @@ void faceDetect(Mat &img,
 				Rect rect(i*DELTA, j*DELTA, SIZE, SIZE);
 				img(rect).copyTo(roi);
 
-				vector<floatType> feature = featureExtract.getAdaBoostFeature(roi);
+				++fileCnt;
 
-				floatType score = adaBoostFinalH(feature, 
-						error, theta, featureSelected, sign);
+				floatType score = adaBoostFinalH(featureExtract, roi, 
+						error, theta, featureSelected, sign,
+						threshold, n, featureC);
 
-				if (score > 100.0){
+
+				if (score > 0.0  && score > maxScore){
 					maxScore = score;
-					cout<<score<<' '<<++fileCnt<<endl;
-				//	face = roi;
-					imwrite( (string("result_pic") 
-							+ "/" + createPicName(fileCnt)).c_str(), roi);
-				}
+					roi.copyTo(ret);
 
+					scale = cols * 1.0 / img.cols;
+					x = (int) ceil(i * DELTA * scale);
+					y = (int) ceil(j * DELTA * scale);
+					sz = (int) ceil(SIZE * scale);
+				}
 			}
+
 		Size size(img.cols * SCALE, img.rows * SCALE);
 		resize(img, img, size);
 	}
-	/*
-	size = Size(300, 300);
-	resize(face, face, size);
-	imshow("x", face);
-	*/
+
+	//imwrite( ((string("pos_tmp"))
+	//			+ "/" + createPicName(fileCnt)).c_str(), ret);
+
+	gettimeofday(&stop,0); 
+	timeval_subtract(&diff,&start,&stop); 
+	printf("总计用时:%d 微秒\n",diff.tv_usec); 
+
 }
 
 
-bool qualityTest(const char *testDir, int testSign, double testTheta,
-		floatType *error, floatType *theta,
-		int *featureSelected, int *sign){
-
-	vector<string> fileNameVec;
-	if (!getFileNameFromDir(testDir, fileNameVec)) return false;
-
-	FeatureExtract featureExtract(featureSelected, adaBoostT);
-
-	int correctCnt = 0;
-
-	for (int i=0; i<fileNameVec.size(); ++i){
-		Mat src = imread(fileNameVec[i].c_str());
-		vector<floatType> feature = featureExtract.getAdaBoostFeature(src);
-		floatType score = adaBoostFinalH(feature, 
-				error, theta, featureSelected, sign);
+void camera(floatType *&error, floatType *&theta,
+		int *&featureSelected, int *&sign,
+		floatType * &threshold,
+		int n, int *&featureC){
 
 
-		if (score * testSign >= testTheta) 
-			correctCnt ++;
+	int **fSelected = (int **) malloc(sizeof(int*) * n);
+	FeatureExtract *featureExtract = (FeatureExtract *) malloc(sizeof(FeatureExtract) * n);
+	memset(featureExtract, 0, sizeof(FeatureExtract) * n);
+
+	int idx = 0;
+
+	for (int i=0; i<n; ++i){
+		fSelected[i] = (int *) malloc(sizeof(int) * featureC[i]);
+		for (int j=0; j<featureC[i]; ++j){
+			fSelected[i][j] = featureSelected[j + idx];
+		}
+
+		featureExtract[i].init(fSelected[i], featureC[i]);
+		idx += featureC[i];
 	}
 
-	cout<<correctCnt<<' '<<fileNameVec.size()<<endl;
 
-
-	return true;
-}
-
-
-void cameraFace(
-		floatType *error, floatType *theta,
-		int *featureSelected, int *sign){
 
 	VideoCapture cap(0);
-	if(!cap.isOpened())
+	if (!cap.isOpened())
 		return;
+
 	Mat src;
 	int cnt = 0;
-	for(;;)
-	{
+	for (;;){
 		Mat frame;
 		cap>>frame;
-		if (++cnt < 100) continue;
 
+		int x, y, sz = 0;
 
-		imwrite(createPicName(cnt).c_str(), frame);
-		faceDetect(frame, error, theta, featureSelected, sign);
-//		imshow("x", frame);
+		test(featureExtract, frame, 
+				error, theta, featureSelected, sign,
+				threshold, n, featureC,
+				x, y, sz);
+
+		if (sz) {
+			rectangle(frame, Point(x, y), Point(x+sz, y+sz), Scalar(0,0,255), 3);
+		}
+		imshow("x", frame);
+		waitKey(3);
 	}
 
+	for (int i=0; i<n; ++i)
+		free(fSelected[i]);
+	free(fSelected);
 }
 
 int main(){
@@ -146,35 +218,24 @@ int main(){
 	floatType *theta = (floatType*) malloc(sizeof(floatType) * adaBoostT);
 	int *featureSelected = (int*) malloc(sizeof(int) * adaBoostT);
 	int *sign = (int*) malloc(sizeof(int) * adaBoostT);
+	int n;
+	floatType *threshold;
+	int *featureC;
 
 
-	if (!readAdaBoostFromFile(error, theta, featureSelected, sign)) return 1;
+	if (!readAdaBoostFromFile(error, theta, featureSelected, sign,
+				threshold, n, featureC)) return 1;
 
-	/*
-	Mat src = imread("1.jpg");
-	faceDetect(src, error, theta, featureSelected, sign);
-	*/
 
-	cameraFace(error, theta, featureSelected, sign);
-
-	/*
-	   for (double testTheta = -100.0; 
-	   testTheta <= -80.0; testTheta += 1.0){
-	   if (!qualityTest(posTestDir, 1, testTheta,
-	   error, theta, featureSelected, sign))
-	   return 1;
-
-	   if (!qualityTest(negTestDir, -1, testTheta,
-	   error, theta, featureSelected, sign))
-	   return 1;
-	   cout<<endl;
-	   }
-	 */
+	camera(error, theta, featureSelected, sign, threshold, n, featureC);
 
 
 	free(error);
 	free(theta);
 	free(featureSelected);
 	free(sign);
+	free(threshold);
+	free(featureC);
+
 	return 0;
 }

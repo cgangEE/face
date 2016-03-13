@@ -13,5 +13,7 @@ peal/*
 galleryset/*
 positive_test/*
 negative_test/*
+pos_tmp/*
+neg_tmp/*
 bin/*
 .DS_Store

@@ -72,7 +72,7 @@ bool trainCascade(floatType *error, floatType *theta,
 		total -= featureCnt[i];
 
 	while (total){
-		int fCntI = min(featureCnt.back() * 1, total);
+		int fCntI = min(featureCnt.back() * ((rand()%10<2)?2:1), total);
 		featureCnt.push_back(fCntI);
 		total -= fCntI;
 	}
@@ -88,16 +88,17 @@ bool trainCascade(floatType *error, floatType *theta,
 	vector<string> negTest;
 
 	if (!getFileNameFromDir(posTestDir, posTest)) return false;
-	if (!getFileNameFromDir(negTestDir, negTest)) return false;
+	if (!getFileNameFromDir(negDir, negTest)) return false;
 
 	floatType *score = (floatType*) 
 			malloc(sizeof(floatType) * (posTest.size() + negTest.size()));
 	threshold = (floatType *) malloc(sizeof(floatType) * featureCnt.size());
 
+	memset(score, 0, sizeof(floatType) * (posTest.size() + negTest.size()));
+
 
 	int idx = 0;
 	for (int i=0; i<featureCnt.size(); ++i){
-		memset(score, 0, sizeof(floatType) * (posTest.size() + negTest.size()));
 
 		int *fSelected = (int*) malloc(sizeof(int) * featureCnt[i]);
 		for (int j=0; j<featureCnt[i]; ++j)
@@ -106,30 +107,39 @@ bool trainCascade(floatType *error, floatType *theta,
 
 		FeatureExtract featureExtract(fSelected, featureCnt[i]);
 
+
+		threshold[i] = 1e50;
+		floatType min1 = 1e50;
+
 		for (int j=0; j<posTest.size(); ++j){
 			Mat src = imread(posTest[j].c_str());
+			Size size(SIZE, SIZE);
+			resize(src, src, size);
+			cvtColor(src, src, CV_BGR2GRAY);
+
 			score[j] += adaBoostFinalH(featureExtract, src, 
 												feature, idx, featureCnt[i]);
+//			threshold[i] = min(score[j], threshold[i]);
+
+			if (score[j] < min1){
+				threshold[i] = min1;
+				min1 = score[j];
+			} else if (score[j] != min1 && score[j] < threshold[i])
+				threshold[i] = score[j];
 		}
+
+
+		floatType maxNeg = -1e50;
 
 		for (int j=0; j<negTest.size(); ++j){
 			Mat src = imread(negTest[j].c_str());
 			score[posTest.size() + j] += adaBoostFinalH(featureExtract, src, 
 												feature, idx, featureCnt[i]);
-		}
-
-		floatType min1 = 1e50;
-		floatType min2 = 1e50;
-
-		for (int j=0; j<negTest.size(); ++j){
-			if (score[posTest.size() + j] < min1){
-				min2 = min1;
-				min1 = score[posTest.size() + j];
-			} else if (score[posTest.size() + j] != min1)
-				min2 = min(min2, score[posTest.size() + j]);
+			maxNeg = max(maxNeg, score[posTest.size() + j]);
 		}
 		
-		threshold[i] = min2;
+		cout<<threshold[i]<<endl;
+//		threshold[i] = (threshold[i] + maxNeg) / 2;
 
 		free(fSelected);
 		idx += featureCnt[i];
