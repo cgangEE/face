@@ -4,6 +4,8 @@
 *.o
 *.model
 tmp/*
+INRIAPerson/*
+inih/*
 DATA/*
 origin_pic/*
 result_pic/*
@@ -19,4 +21,6 @@ pos_tmp/*
 neg_tmp/*
 bin/*
 libsvm/*
+test_64x128_H96/*
+train_64x128_H96/*
 .DS_Store

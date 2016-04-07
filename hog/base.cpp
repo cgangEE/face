@@ -1,4 +1,4 @@
-#include "faceBase.h"
+#include "base.h"
 
 bool getFileNameFromDir(const char *dir, vector<string> &ret){
 	DIR *dp;
@@ -28,7 +28,8 @@ string createPicName(int no){
 }
 
 void getHist(Mat &src){
-	cvtColor(src, src, CV_BGR2GRAY);
+	if (src.channels() != 1) 
+		cvtColor(src, src, CV_BGR2GRAY);
 
 	Mat kernelX = (Mat_<char>(1, 3) << 1, 0, -1);
 	Mat kernelY = (Mat_<char>(3, 1) << 1, 0, -1);
@@ -66,13 +67,13 @@ void getHist(Mat &src){
 					
 					int idx = (int) floor(angle / PI * BIN);
 					hist[i][j][idx] += magnitude;
+
 				}
 			}
 		}
 }
 
 vector<floatType> FeatureExtract::getFeature(Mat src){
-//	resize(src, src, Size(9,9));
 
 	getHist(src);
 
@@ -90,11 +91,37 @@ vector<floatType> FeatureExtract::getFeature(Mat src){
 			len = sqrt(len);
 			for (int s=0; s<BLOCK; ++s)
 				for (int t=0; t<BLOCK; ++t){
-					for (int r=0; r<BIN; ++r)
+					for (int r=0; r<BIN; ++r){
 						feature.push_back(hist[i+s][j+t][r]/len);
+						if (isnan(feature.back()))
+							cout<<len<<' '<<hist[i+s][j+t][r]<<endl;
+					}
 				}
+
 		}
 
 	return feature;
 }
 
+FeatureExtract::FeatureExtract(){
+	INIReader reader("./base.ini");
+	if (reader.ParseError() < 0) {
+		fprintf(stderr, "can't load base.ini\n");
+		exit(1);
+    }
+
+	X = reader.GetInteger("base", "X", 0);
+	Y = reader.GetInteger("base", "Y", 0);
+	CELL  = reader.GetInteger("base", "CELL", 0);
+	BLOCK  = reader.GetInteger("base", "BLOCK", 0);
+	STRIDE  = reader.GetInteger("base", "STRIDE", 0);
+	BIN  = reader.GetInteger("base", "BIN", 0);
+	EPS  = reader.GetReal("base", "EPS", 0.0);
+
+	DELTA = reader.GetInteger("base", "DELTA", 0);
+	SCALE = reader.GetReal("base", "SCALE", 0.0);
+}
+
+FeatureExtract::~FeatureExtract(){
+
+}

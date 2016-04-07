@@ -1,4 +1,4 @@
-#include "faceBase.h"
+#include "base.h"
 
 bool featureExtractFromDir(const char *dir, 
 		vector<vector<floatType> > &x, vector<int> &y, int type){
