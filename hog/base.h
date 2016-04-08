@@ -40,7 +40,7 @@ static double EPS;
 static int DELTA;
 static int SCALE;
 
-typedef double floatType;
+#define floatType double
 
 bool getFileNameFromDir(const char *dir, vector<string> &ret);
 string createPicName(int no);

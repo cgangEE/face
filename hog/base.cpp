@@ -52,10 +52,11 @@ void getHist(Mat &src){
 			(short) src.at<uchar>(Y.cols-2,j) - src.at<uchar>(Y.cols-1,j);
 	}
 
-	memset(hist, 0, sizeof(hist));
 
 	for (int i=0; i<X.cols / CELL; ++i)
 		for (int j=0; j<X.rows / CELL; ++j){
+			memset(hist[i][j], 0, sizeof(floatType) * BIN);
+
 			for (int s=0; s<CELL; ++s){
 				for (int t=0; t<CELL; ++t){
 					short x = X.at<short>(i*CELL+s, j*CELL+t);
@@ -120,8 +121,21 @@ FeatureExtract::FeatureExtract(){
 
 	DELTA = reader.GetInteger("base", "DELTA", 0);
 	SCALE = reader.GetReal("base", "SCALE", 0.0);
+
+	hist = (floatType***) malloc(sizeof(floatType**) * X/CELL);
+	for (int i=0; i<X/CELL; ++i){
+		hist[i] = (floatType**) malloc(sizeof(floatType*) * Y/CELL);
+		for (int j=0; j<Y/CELL; ++j)
+			hist[i][j] = (floatType*) malloc(sizeof(floatType) * BIN);
+	}
+
 }
 
 FeatureExtract::~FeatureExtract(){
-
+	for (int i=0; i<X/CELL; ++i){
+		for (int j=0; j<Y/CELL; ++j)
+			free(hist[i][j]);
+		free(hist[i]);
+	}
+	free(hist);
 }
