@@ -1,5 +1,16 @@
 #include "base.h"
 
+int X;
+int Y;
+int CELL;
+int BLOCK;
+int STRIDE;
+int BIN;
+double EPS;
+
+int DELTA;
+double SCALE;
+
 bool getFileNameFromDir(const char *dir, vector<string> &ret){
 	DIR *dp;
 	struct dirent *dirp;
@@ -9,14 +20,15 @@ bool getFileNameFromDir(const char *dir, vector<string> &ret){
 		return false;
 	} 
 
-	while ((dirp = readdir(dp)) != NULL)
-		if (dirp->d_type == 8 && dirp->d_name[0]!='.'){
+	while ((dirp = readdir(dp)) != NULL){
+		if ( (dirp->d_type == 8 || dirp->d_type == 10) 
+			&& dirp->d_name[0]!='.'){
 			ret.push_back(string(dir) + '/' + dirp->d_name);
 		}
+	}
 
 	return true;
 }
-
 
 string createPicName(int no){
 	string ret;
@@ -27,40 +39,96 @@ string createPicName(int no){
 	return ret + ".jpg";
 }
 
+
+void getGradient(Mat &src, Mat &MX, Mat &MY){
+	Mat kernelX = (Mat_<char>(1, 3) << 1, 0, -1);
+	Mat kernelY = (Mat_<char>(3, 1) << 1, 0, -1);
+
+	filter2D (src, MX, CV_16S, kernelX);  
+	filter2D (src, MY, CV_16S, kernelY);  
+
+	for (int i=0; i<MX.cols; ++i){
+		MX.at<short>(i,0) = 
+			(short) src.at<uchar>(i,0) - src.at<uchar>(i, 1);
+		MX.at<short>(i, MX.rows-1) =
+			(short) src.at<uchar>(i, MX.rows-2) 
+			- src.at<uchar>(i, MX.rows-1);
+	}
+
+	for (int j=0; j<MY.rows; ++j){
+		MY.at<short>(0,j) = 
+			(short) src.at<uchar>(0,j) - src.at<uchar>(1,j);
+		MY.at<short>(MY.cols-1,j) = 
+			(short) src.at<uchar>(MY.cols-2,j) 
+			- src.at<uchar>(MY.cols-1,j);
+	}
+
+
+//	Mat hist[BIN];
+
+	for (int i=0; i<MX.cols / CELL; ++i)
+		for (int j=0; j<MX.rows / CELL; ++j){
+
+			for (int s=0; s<CELL; ++s){
+				for (int t=0; t<CELL; ++t){
+
+					short x = MX.at<short>(i*CELL+s, j*CELL+t);
+					short y = MY.at<short>(i*CELL+s, j*CELL+t);
+
+					double angle = x==0? PI/2 : atan(y*1.0/x);
+					if (angle < 0.0) angle += PI;
+					double magnitude = sqrt(SQR(x*1.0) + SQR(y*1.0));
+					
+					int idx = (int) floor(angle / PI * BIN);
+					hist[i][j][idx] += magnitude;
+				}
+			}
+
+		}
+}
+
+
 void getHist(Mat &src){
 	if (src.channels() != 1) 
 		cvtColor(src, src, CV_BGR2GRAY);
 
+	
 	Mat kernelX = (Mat_<char>(1, 3) << 1, 0, -1);
 	Mat kernelY = (Mat_<char>(3, 1) << 1, 0, -1);
-	Mat X, Y;
+	Mat MX, MY;
 
-	filter2D (src, X, CV_16S, kernelX);  
-	filter2D (src, Y, CV_16S, kernelY);  
+	filter2D (src, MX, CV_16S, kernelX);  
+	filter2D (src, MY, CV_16S, kernelY);  
 
-	for (int i=0; i<X.cols; ++i){
-		X.at<short>(i,0) = 
+
+	for (int i=0; i<MX.rows; ++i){
+		MX.at<short>(i,0) = 
 			(short) src.at<uchar>(i,0) - src.at<uchar>(i, 1);
-		X.at<short>(i,X.rows-1) =
-			(short) src.at<uchar>(i, X.rows-2) - src.at<uchar>(i, X.rows-1);
+
+		MX.at<short>(i, MX.cols-1) =
+			(short) src.at<uchar>(i, MX.cols-2) 
+			- src.at<uchar>(i, MX.cols-1);
 	}
 
-	for (int j=0; j<Y.rows; ++j){
-		Y.at<short>(0,j) = 
+
+
+	for (int j=0; j<MY.cols; ++j){
+		MY.at<short>(0,j) = 
 			(short) src.at<uchar>(0,j) - src.at<uchar>(1,j);
-		Y.at<short>(Y.cols-1,j) = 
-			(short) src.at<uchar>(Y.cols-2,j) - src.at<uchar>(Y.cols-1,j);
+		MY.at<short>(MY.rows-1,j) = 
+			(short) src.at<uchar>(MY.rows-2,j) 
+			- src.at<uchar>(MY.rows-1,j);
 	}
 
 
-	for (int i=0; i<X.cols / CELL; ++i)
-		for (int j=0; j<X.rows / CELL; ++j){
+	for (int i=0; i<MX.rows / CELL; ++i)
+		for (int j=0; j<MX.cols / CELL; ++j){
 			memset(hist[i][j], 0, sizeof(floatType) * BIN);
 
 			for (int s=0; s<CELL; ++s){
 				for (int t=0; t<CELL; ++t){
-					short x = X.at<short>(i*CELL+s, j*CELL+t);
-					short y = Y.at<short>(i*CELL+s, j*CELL+t);
+					short x = MX.at<short>(i*CELL+s, j*CELL+t);
+					short y = MY.at<short>(i*CELL+s, j*CELL+t);
 
 					double angle = x==0? PI/2 : atan(y*1.0/x);
 					if (angle < 0.0) angle += PI;
@@ -80,8 +148,8 @@ vector<floatType> FeatureExtract::getFeature(Mat src){
 
 	vector<floatType> feature;
 
-	for (int i=0; i <= SIZE/CELL - BLOCK; i+=STRIDE)
-		for (int j=0; j <= SIZE/CELL - BLOCK; j+=STRIDE){
+	for (int i=0; i <= X/CELL - BLOCK; i+=STRIDE)
+		for (int j=0; j <= Y/CELL - BLOCK; j+=STRIDE){
 			
 			floatType len = EPS;
 			for (int s=0; s<BLOCK; ++s)
@@ -94,8 +162,10 @@ vector<floatType> FeatureExtract::getFeature(Mat src){
 				for (int t=0; t<BLOCK; ++t){
 					for (int r=0; r<BIN; ++r){
 						feature.push_back(hist[i+s][j+t][r]/len);
+						/*
 						if (isnan(feature.back()))
 							cout<<len<<' '<<hist[i+s][j+t][r]<<endl;
+						*/
 					}
 				}
 
@@ -128,7 +198,6 @@ FeatureExtract::FeatureExtract(){
 		for (int j=0; j<Y/CELL; ++j)
 			hist[i][j] = (floatType*) malloc(sizeof(floatType) * BIN);
 	}
-
 }
 
 FeatureExtract::~FeatureExtract(){

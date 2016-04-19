@@ -29,21 +29,22 @@ using namespace cv;
 #define PI (acos(-1.0))
 
 #define SIZE 80
-static int X;
-static int Y;
-static int CELL;
-static int BLOCK;
-static int STRIDE;
-static int BIN;
-static double EPS;
+extern int X;
+extern int Y;
+extern int CELL;
+extern int BLOCK;
+extern int STRIDE;
+extern int BIN;
+extern double EPS;
 
-static int DELTA;
-static int SCALE;
+extern int DELTA;
+extern double SCALE;
 
 #define floatType double
 
 bool getFileNameFromDir(const char *dir, vector<string> &ret);
 string createPicName(int no);
+void getGradient(Mat &src, Mat &MX, Mat &MY);
 
 static floatType ***hist;
 

@@ -10,12 +10,12 @@ void test(svm_model *model, Mat img,
 	int cols = img.cols;
 	Mat roi;
 	cvtColor(img, img, CV_BGR2GRAY);
-	
+
 	floatType scale = min(1.0, 
-			min(330.0 / img.cols, 330.0 /img.rows));
+			min(400.0 / img.cols, 400.0 /img.rows));
 
 	Size size(img.cols * scale, img.rows * scale);
-	resize(img, img, size);
+//	resize(img, img, size);
 
 
 	FeatureExtract featureExtract;
@@ -99,7 +99,7 @@ void testLocal(svm_model *model, const char *fileName){
 	int cols = img.cols;
 	Mat roi;
 	cvtColor(img, img, CV_BGR2GRAY);
-	
+
 	floatType scale = min(1.0, 
 			min(300.0 / img.cols, 300.0 /img.rows));
 
@@ -111,14 +111,13 @@ void testLocal(svm_model *model, const char *fileName){
 	FeatureExtract featureExtract;
 	svm_node *f  = NULL;
 
+	int rectCnt = 0;
 
-	vector< pair<double, pair< pair<double, int> , pair<int,int> > > >ret;
+	while (img.rows>=X && img.cols>=Y){
+		for (int i=0; i<=(img.rows - X) / DELTA; ++i)
+			for (int j=0; j<=(img.cols - Y) / DELTA; ++j){
 
-	while (img.rows>=SIZE && img.cols>=SIZE){
-		for (int i=0; i<=(img.cols - SIZE) / DELTA; ++i)
-			for (int j=0; j<=(img.rows - SIZE) / DELTA; ++j){
-
-				Rect rect(i*DELTA, j*DELTA, SIZE, SIZE);
+				Rect rect(j*DELTA, i*DELTA, Y, X);
 				img(rect).copyTo(roi);
 
 				++fileCnt;
@@ -136,21 +135,20 @@ void testLocal(svm_model *model, const char *fileName){
 				}
 				f[feature.size()].index = -1;
 
-				double *prob;
-				double type = svm_predict_probability(model, f, prob);
+				double type = svm_predict(model, f);
 
 				if (type != -1){
 					scale = cols * 1.0 / img.cols;
-					sz = (int) ceil(SIZE * scale);
+					int szX = (int) ceil(X * scale);
+					int szY = (int) ceil(Y * scale);
 					x = (int) ceil(i * DELTA * scale);
 					y = (int) ceil(j * DELTA * scale);
 
-					ret.push_back(
-							make_pair(max(prob[0], prob[1]),
-							make_pair(
-								make_pair(scale, sz), 
-								make_pair(x, y)
-								)));
+					rectangle(frame, 
+							Point(y, x), Point(y+szY, x+szX), Scalar(255,255,0), 3);
+					imwrite("detectedTest.jpg", frame);
+
+					if (++rectCnt == 10) return;
 				}
 
 			}
@@ -159,19 +157,6 @@ void testLocal(svm_model *model, const char *fileName){
 		resize(img, img, size);
 	}
 
-	sort(ret.rbegin(), ret.rend());
-	cout<<ret.size()<<endl;
-
-	for (int i=0; i<min(5, (int)ret.size()); ++i){
-		double scale = ret[i].second.first.first;
-		int sz = ret[i].second.first.second;
-		int x= ret[i].second.second.first;
-		int y= ret[i].second.second.second;
-
-		rectangle(frame, 
-				Point(x, y), Point(x+sz, y+sz), Scalar(0,0,255), 3);
-	}
-	imwrite("detectedBoy.jpg", frame);
 
 	free(f);
 }
@@ -179,8 +164,8 @@ void testLocal(svm_model *model, const char *fileName){
 
 int main(){
 	svm_model *model = svm_load_model(svmModelName);
-//	camera(model);
-	const char *fileName = "boy.jpg";
+	//	camera(model);
+	const char *fileName = "X.png";
 	testLocal(model, fileName);
 	return 0;
 }

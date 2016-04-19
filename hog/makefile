@@ -1,5 +1,8 @@
-main: dataClean featureExtract faceDetect
+main: dataClean featureExtract faceDetect getHardExample
 	echo 'x'
+
+getHardExample: getHardExample.cpp base.o ini.o INIReader.o
+	g++ -I/usr/local/include -L/usr/local/lib -lopencv_core -lopencv_highgui -lopencv_imgproc getHardExample.cpp base.o ini.o INIReader.o libsvm/svm.o -o getHardExample
 
 faceDetect: faceDetect.cpp base.o ini.o INIReader.o
 	g++ -I/usr/local/include -L/usr/local/lib -lopencv_core -lopencv_highgui -lopencv_imgproc faceDetect.cpp base.o ini.o INIReader.o libsvm/svm.o -o faceDetect

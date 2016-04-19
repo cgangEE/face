@@ -12,7 +12,7 @@ bool featureExtractFromDir(const char *dir,
 
 		Mat src = imread(fileName[i].c_str());
 
-		for (int i=0; i<2; ++i){
+		for (int i=0; i<1; ++i){
 			if (i) 
 				flip(src, src, 1);
 			vector<floatType> feature = featureExtract.getFeature(src);
@@ -43,7 +43,7 @@ bool writeFeatureToFile(vector<vector<floatType> > &x, vector<int> &y){
 	for (int i=0; i<n; ++i){
 		fprintf(fTrain, "%d", y[i]);
 		for (int j=1; j<=m; ++j)
-			fprintf(fTrain, " %d:%f", j, x[i][j]);
+			fprintf(fTrain, " %d:%f", j, x[i][j-1]);
 	
 		fprintf(fTrain, "\n");
 	}
