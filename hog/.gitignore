@@ -2,6 +2,7 @@
 *.txt
 *.swp
 *.o
+*.out
 *.model
 tmp/*
 INRIAPerson/*
