@@ -18,3 +18,7 @@ FeatureExtract.getFeature(Mat src) 从图形 src 中获取一组 hog 特征。
 
 把 INRIAPerson/test-64x128-H96/ 中的图片随机剪切好，并选取出svm-predict为1的hard example 存放到 negative-pic 中。
 
+
+### detect
+
+做行人检测和测试
