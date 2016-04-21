@@ -3,7 +3,6 @@
 *.swp
 *.o
 *.out
-*out
 *.model
 *.jpg
 *.png
