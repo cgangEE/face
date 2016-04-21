@@ -4,65 +4,7 @@
 
 int fileCnt = 0;
 
-void test(svm_model *model, Mat img,
-		int &x, int &y, int &sz){
-
-	int cols = img.cols;
-	Mat roi;
-	cvtColor(img, img, CV_BGR2GRAY);
-
-	floatType scale = min(1.0, 
-			min(400.0 / img.cols, 400.0 /img.rows));
-
-	Size size(img.cols * scale, img.rows * scale);
-//	resize(img, img, size);
-
-
-	FeatureExtract featureExtract;
-	svm_node *f  = NULL;
-
-	while (img.rows>=SIZE && img.cols>=SIZE){
-		for (int i=0; i<=(img.cols - SIZE) / DELTA; ++i)
-			for (int j=0; j<=(img.rows - SIZE) / DELTA; ++j){
-
-				Rect rect(i*DELTA, j*DELTA, SIZE, SIZE);
-				img(rect).copyTo(roi);
-
-				++fileCnt;
-
-				vector<floatType> feature = featureExtract.getFeature(roi);
-				if (!f) 
-					f = (svm_node*) 
-						malloc(sizeof(svm_node) * (feature.size()+1));
-
-
-				for (int i=0; i<feature.size(); ++i){
-					f[i].index = i+1;
-					f[i].value = feature[i];
-				}
-				f[feature.size()].index = -1;
-
-				double type = svm_predict(model, f);
-
-				if (type != -1){
-					scale = cols * 1.0 / img.cols;
-					x = (int) ceil(i * DELTA * scale);
-					y = (int) ceil(j * DELTA * scale);
-					sz = (int) ceil(SIZE * scale);
-
-					free(f);
-					return;
-				}
-
-			}
-
-		Size size(img.cols * SCALE, img.rows * SCALE);
-		resize(img, img, size);
-	}
-
-	free(f);
-}
-
+/*
 void camera(svm_model *model){
 	VideoCapture cap(0);
 	if (!cap.isOpened())
@@ -87,6 +29,10 @@ void camera(svm_model *model){
 	}
 
 }
+*/
+
+FeatureExtract featureExtract;
+char c;
 
 void testLocal(svm_model *model, const char *fileName){
 
@@ -106,12 +52,10 @@ void testLocal(svm_model *model, const char *fileName){
 	Size size(img.cols * scale, img.rows * scale);
 	resize(img, img, size);
 
-	int x, y, sz;
+	int x, y, szX, szY;
 
-	FeatureExtract featureExtract;
 	svm_node *f  = NULL;
-
-	int rectCnt = 0;
+	double maxDec = -1e100;
 
 	while (img.rows>=X && img.cols>=Y){
 		for (int i=0; i<=(img.rows - X) / DELTA; ++i)
@@ -124,7 +68,7 @@ void testLocal(svm_model *model, const char *fileName){
 				if (fileCnt%1000==0) cout<<fileCnt<<endl;
 
 				vector<floatType> feature = featureExtract.getFeature(roi);
-				if (!f) 
+				if (f == NULL) 
 					f = (svm_node*) 
 						malloc(sizeof(svm_node) * (feature.size()+1));
 
@@ -135,21 +79,23 @@ void testLocal(svm_model *model, const char *fileName){
 				}
 				f[feature.size()].index = -1;
 
-				double type = svm_predict(model, f);
 
-				if (type != -1){
+				double *dec_values = (double*) malloc(sizeof(double));
+				double type = svm_predict_values(model, f, dec_values);
+
+				if (type != -1 && dec_values[0]>maxDec){
+					maxDec = dec_values[0];
+					cout<<type<<' '<<dec_values[0]<<endl;
+
 					scale = cols * 1.0 / img.cols;
-					int szX = (int) ceil(X * scale);
-					int szY = (int) ceil(Y * scale);
+					szX = (int) ceil(X * scale);
+					szY = (int) ceil(Y * scale);
 					x = (int) ceil(i * DELTA * scale);
 					y = (int) ceil(j * DELTA * scale);
 
-					rectangle(frame, 
-							Point(y, x), Point(y+szY, x+szX), Scalar(255,255,0), 3);
-					imwrite("detectedTest.jpg", frame);
-
-					if (++rectCnt == 10) return;
 				}
+
+				free(dec_values);
 
 			}
 
@@ -157,6 +103,13 @@ void testLocal(svm_model *model, const char *fileName){
 		resize(img, img, size);
 	}
 
+	rectangle(frame, 
+			Point(y, x), Point(y+szY, x+szX), 
+			Scalar(255,255,0), 3);
+
+	string outputFileName = "aDetected.jpg";
+	outputFileName[0]  = c;
+	imwrite(outputFileName.c_str(), frame);
 
 	free(f);
 }
@@ -164,8 +117,11 @@ void testLocal(svm_model *model, const char *fileName){
 
 int main(){
 	svm_model *model = svm_load_model(svmModelName);
-	//	camera(model);
-	const char *fileName = "X.png";
-	testLocal(model, fileName);
+	
+	for (c = 'a'; c<='f'; ++c){
+		char fileName[] = "e.png";
+		fileName[0] = c;
+		testLocal(model, fileName);
+	}
 	return 0;
 }
