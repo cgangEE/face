@@ -3,10 +3,8 @@
 int fileCnt;
 
 void processAndSave(Mat &img, const char *dstDir){
-	Mat roi;
 	Rect rect(16, 16, Y, X);
 	img(rect).copyTo(img);
-
 
 	imwrite( (string(dstDir) + '/' + createPicName(++fileCnt)).c_str(), img);  
 }
